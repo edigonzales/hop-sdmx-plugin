@@ -1,0 +1,6 @@
+= SDMX Plugin
+:description: Dynamic SDMX configuration with a static Apache Hop output schema.
+
+* xref:transforms/sdmx-input.adoc[SDMX Input]
+
+Runnable examples are in `examples/`; installed tests are in `e2e/`.

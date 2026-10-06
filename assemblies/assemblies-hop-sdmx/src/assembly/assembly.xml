@@ -1,0 +1,40 @@
+<assembly xmlns="http://maven.apache.org/ASSEMBLY/2.1.1"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.1.1 https://maven.apache.org/xsd/assembly-2.1.1.xsd">
+  <id>plugin</id>
+  <formats>
+    <format>zip</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+
+  <dependencySets>
+    <dependencySet>
+      <useProjectArtifact>false</useProjectArtifact>
+      <useTransitiveDependencies>true</useTransitiveDependencies>
+      <outputDirectory>plugins/transforms/hop-sdmx</outputDirectory>
+      <scope>runtime</scope>
+      <unpack>false</unpack>
+      <includes>
+        <include>ch.so.agi:hop-transform-sdmx</include>
+      </includes>
+    </dependencySet>
+
+    <dependencySet>
+      <useProjectArtifact>false</useProjectArtifact>
+      <useTransitiveDependencies>true</useTransitiveDependencies>
+      <outputDirectory>plugins/transforms/hop-sdmx/lib</outputDirectory>
+      <outputFileNameMapping>${artifact.artifactId}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
+      <scope>runtime</scope>
+      <unpack>false</unpack>
+      <includes>
+        <include>ch.so.agi:hop-sdmx-core</include>
+        <include>com.fasterxml.jackson.core:*</include>
+        <include>org.apache.commons:commons-csv</include>
+        <include>commons-io:commons-io</include>
+        <include>commons-codec:commons-codec</include>
+      </includes>
+    </dependencySet>
+  </dependencySets>
+
+  <files><file><source>../../LICENSE</source><outputDirectory>plugins/transforms/hop-sdmx</outputDirectory></file></files>
+</assembly>

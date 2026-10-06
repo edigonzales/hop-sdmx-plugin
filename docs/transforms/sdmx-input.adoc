@@ -1,0 +1,198 @@
+[[sdmx-input]]
+= SDMX Input
+:plugin-id: SdmxInput
+:plugin-type: transform
+:description: Read SDMX observations using dynamic metadata discovery and a saved output schema.
+
+== Description
+
+SDMX Input discovers a dataflow's Data Structure Definition (DSD), codelists and content constraints.
+The author explicitly loads and saves the structure. At runtime the transform validates the current
+structure against the saved schema before emitting observations. Codes and labels may change without
+changing the schema. Component identifiers, roles, dimension order and data types must remain compatible.
+A version identifies a structural definition; it does not freeze the observation values.
+
+BFS Swiss Stats Explorer is the verified provider. The endpoint is configurable, but other providers
+must support REST v1, SDMX-JSON structure 1.0 and SDMX-CSV data 2. Those three versions are independent.
+
+== Input
+
+This is a source transform. Do not connect incoming rows and use exactly one copy.
+All source and filter text values support Hop variables such as `${START_PERIOD}`. Variable expressions
+are stored verbatim; neither schema discovery nor preview replaces them with the resolved value.
+Pipeline parameters must be activated before pipeline preparation, as Application Launcher already does.
+
+[[options]]
+== Options
+
+The main dialog has three tabs. Find a dataflow or enter its identifiers, then click
+*Load / refresh structure*. Loading a structure or toggling label fields regenerates output fields,
+including their default names. Cancel discards the draft; OK commits it.
+
+[.gui-mockup]
+----
++--------------------------------------------------------------------------+
+| SDMX Input                                                               |
+| Transform name [ SDMX Input                                          ]   |
+| [Source] [Dimensions] [Output fields]                                    |
+| Endpoint     [ https://disseminate.stats.swiss/rest                    ] |
+| Agency       [ CH1.COU                                                ]  |
+| Dataflow     [ DF_COU_HEALTH_FINANCING                                 ] |
+| Version      [ 1.0.0                                                  ]  |
+| Start period [ ${START_PERIOD}                                        ]  |
+| End period   [ ${END_PERIOD}                                          ]  |
+| Language     [ de                                                     ]  |
+| [Find dataflow...] [Load / refresh structure]                            |
+| Status: saved structure or current request result                        |
+|          [Preview (50 rows)] [Cancel request] [OK] [Cancel]              |
+| [Help]                                                                   |
++--------------------------------------------------------------------------+
+----
+
+[cols="1,3,1",options="header"]
+|===
+|Option |Meaning |Default
+|Endpoint |REST base URL including `/rest`, without query, fragment or credentials |BFS
+|Agency / Dataflow |Identifiers; enter directly or select a search result |empty
+|Version |Explicit version. An empty discovery value resolves the server default; the resolved version is saved. |empty
+|Start / End period |Inclusive SDMX periods; empty means no bound |empty
+|Language |One language tag, e.g. `de`, `fr`, `en` or `de-CH` |`de`
+|Dimension filter |Comma-separated codes, a variable expression, empty or `*` for all |all
+|Include labels |Separate string fields with `_LABEL` suffix |enabled
+|Output fields |Saved names and types. Rename a selected field with the button or double-click. |DSD identifiers
+|===
+
+The Dimensions tab shows one row per non-time dimension, in DSD order: its identifier and name,
+an editable filter expression and a *Choose...* button. Code selections use projected content
+constraints, not an interactive availability service. Even valid codes may produce no observations.
+Uncoded dimensions remain editable. A missing codelist reference is an error rather than guessed metadata.
+
+The Output fields tab shows name, component, Hop type and whether the field contains a label.
+`getFields()` reads only these saved fields and performs no HTTP calls. Changing period or filter values
+cannot change the output schema. Changing the dataflow is allowed only if its structure is compatible.
+
+=== Dataflow search window
+
+Opened by *Find dataflow...*. Select a result, close this window with *Select*, then load the structure
+from the main dialog. Closing the window without selecting does not change the source fields.
+
+[.gui-mockup]
+----
++------------------------------------------------------------------------+
+| Find dataflow                                                          |
+| [ Search agency, identifier or title                                ]  |
+| Agency  | Dataflow                | Version | Title                    |
+| CH1.COU | DF_COU_HEALTH_FINANCING | 1.0.0   | Financing of health care |
+| [Select]                                                               |
++------------------------------------------------------------------------+
+----
+
+=== Code selection window
+
+Opened from a dimension's *Choose...* button. Searching preserves checked choices across searches.
+*Use selected codes* replaces the filter expression with those literal codes; *All values* clears it.
+Close the window to keep an existing parameter expression unchanged.
+
+[.gui-mockup]
+----
++-------------------------------------------------------------+
+| Select Q                                                    |
+| [ Search code or label                                    ] |
+| [x] Q_1 - Confederation                                     |
+| [ ] Q_2 - Cantons                                           |
+| [Use selected codes]                                        |
+| [All values]                                                |
++-------------------------------------------------------------+
+----
+
+=== Field rename window
+
+[.gui-mockup]
+----
++---------------------------------------------+
+| Output field name                           |
+| [ financing_source                        ] |
+| [Apply]                                     |
++---------------------------------------------+
+----
+
+Opened by *Rename selected field...* or by double-clicking an output field. Apply validates the name;
+closing the window discards the rename. Component bindings and types are not changed.
+
+=== Preview window
+
+Preview uses the same structure validation, query and observation reader as execution, stopping after
+50 observations. The server may still prepare the full requested selection; use a narrow period.
+Closing the main dialog cancels its pending HTTP operation. Cancel request leaves the draft editable.
+
+[.gui-mockup]
+----
++----------------------------------------------------------------+
+| Preview - first 50 observations                                |
+| Q   | Q_LABEL       | ... | TIME_PERIOD | OBS_VALUE | MULT     |
+| Q_1 | Confederation | ... | 2023        | 397.708   | 6        |
++----------------------------------------------------------------+
+----
+
+[[output]]
+== Output
+
+One row per observation, including dimensions, time, measures and attributes. Codes and time periods
+are strings. Uncoded decimal/integer measures use Hop BigNumber; float/double measures use Number.
+Missing values become null, not zero. Unknown label codes fall back to the code. Labels use the requested
+language, its base language, then English, then the code. They never become field names.
+
+Data requests use `labels=id`. For BFS, `labels=both` combines code and text within cells and headers;
+this plugin instead resolves label columns from the structure. Codelists are refreshed at execution.
+
+Unit, multiplier, decimals and observation-status attributes are preserved. For example, `397.708`
+with `MULT=6` means millions of the reported unit. No automatic scaling, aggregation, pivoting or
+semantic interpretation is performed. CSV control fields are validated and not exposed as user columns.
+
+== Supported engines
+
+Local Hop pipeline engine on Hop 2.19.0, Java 21/25. Beam and remote/distributed engines are not verified.
+
+== Examples
+
+See link:../../examples/bfs-health-financing/README.md[BFS health financing example]
+and download link:../../examples/bfs-health-financing/bfs-health-financing.hpl[the pipeline].
+It includes `START_PERIOD`, `END_PERIOD`, `FINANCING_SOURCES`, `SDMX_ENDPOINT` and `OUTPUT_FILE` parameters.
+Defaults select one source and year; edit the parameters without changing the schema.
+
+Application Launcher needs no extension: expose `START_PERIOD` and `END_PERIOD` as string parameters
+in the application sidecar; its activated Hop parameters resolve the transform's expressions.
+Keep the pipeline's saved structure and downstream field mappings fixed. Multiple values can be supplied
+as a comma-separated string, e.g. `Q_1,Q_2`.
+
+[[error-handling]]
+== Error handling
+
+Structure mismatches fail before the first output row. CSV content is checked while streaming; a malformed
+later record fails the pipeline after earlier rows may have been emitted. Use staging and publish outputs
+only after a successful run if downstream writes must be atomic.
+
+Connect/read timeouts are 30 seconds. HTTP 429/502/503/504 and connect/read timeouts before opening the
+response body receive at most two retries. A stream is never replayed after output starts. Authentication,
+redirects, unsupported response formats and missing datasets produce explicit errors. No-data HTTP 204
+is reported as an error; a valid CSV header without rows produces zero rows. Stop closes the connection;
+platform network cancellation may take up to the configured timeout.
+
+[[limitations]]
+== Limitations
+
+* Full snapshots only: no `updatedAfter`, watermark or merge implementation.
+* Only insert/replace observation rows (`I`/`R`) are accepted. Delete actions, incomplete dimension keys,
+  attribute-only rows and non-finite numbers fail explicitly.
+* Constraints are projected to per-dimension choices. They do not imply that all selected combinations exist.
+* Fixed schemas require explicit refresh after incompatible server changes. There is no generic JSON-row mode.
+* No authentication configuration or provider-specific adapters in this first version.
+* Structure/catalog responses are bounded at 16 MiB; data is streamed.
+
+== Development
+
+Core code is independent of Hop/SWT. The transform stores schema and field mappings as JSON inside
+Hop metadata properties. Standard metadata XML serialization preserves variable expressions.
+The repository uses `hop-plugin-ci`, its common Maven parent and the `standard-plugin` contract.
+Run `scripts/build-and-install.sh` to verify and install in a local Hop directory; default is
+`/Users/stefan/Downloads/hop`. Automated installed tests use a disposable installation.

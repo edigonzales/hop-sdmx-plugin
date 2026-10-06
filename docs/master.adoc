@@ -1,0 +1,6 @@
+= Hop SDMX
+:lang: en
+:source-highlighter: prism
+:author: Stefan Ziegler
+
+include::transforms/sdmx-input.adoc[leveloffset=+1]

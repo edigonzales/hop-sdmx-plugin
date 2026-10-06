@@ -22,3 +22,12 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# Maven, documentation and local test work
+**/target/
+.ci/
+.idea/
+.DS_Store
+**/__pycache__/
+docs/.downloads/
+docs/build/

@@ -1,0 +1,29 @@
+name: Verify SDMX plugin
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    uses: edigonzales/hop-plugin-ci/.github/workflows/plugin-verify.yml@main
+    with:
+      ci-ref: main
+      java-versions: '["21", "25"]'
+      runner-os: '["ubuntu-latest", "macos-15", "windows-latest"]'
+      canonical-runner-os: ubuntu-latest
+      canonical-java-version: '21'
+      maven-working-directory: .
+      maven-options: -U -B -ntp
+      maven-goals: clean verify
+      compatibility-goals: clean test
+      pom-file: pom.xml
+      zip-descriptors: >-
+        [{"artifactId":"hop-sdmx-plugin","zipGlob":"assemblies/assemblies-hop-sdmx/target/hop-sdmx-plugin-*.zip","pluginRoot":"plugins/transforms/hop-sdmx"}]
+      validation-commands: '["python3 scripts/verify-package.py", "python3 scripts/test-build-and-install.py", "python3 .ci/hop-plugin-ci/scripts/check-plugin-repository.py --profile standard-plugin"]'
+      artifact-name-prefix: hop-sdmx-plugin
+      group-id: ch.so.agi
+      hop-version: 2.19.0
+    secrets: inherit

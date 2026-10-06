@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint GitHub Actions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: raven-actions/actionlint@v2
+
+  verify:
+    uses: ./.github/workflows/verify.yml
+
+  installed-e2e:
+    name: Verify installed plugin with Hop 2.19.0
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Check out CI helper scripts
+        uses: actions/checkout@v4
+        with:
+          repository: edigonzales/hop-plugin-ci
+          ref: main
+          path: .ci/hop-plugin-ci
+          persist-credentials: false
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Download verified SDMX bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: hop-sdmx-plugin-canonical
+          path: .ci/sdmx
+
+      - name: Download isolated Hop 2.19.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! curl --fail --location --retry 3 --connect-timeout 20 --max-time 600 \
+            https://downloads.apache.org/hop/2.19.0/apache-hop-client-2.19.0.zip -o "$RUNNER_TEMP/hop.zip"; then
+            curl --fail --location --retry 3 --connect-timeout 20 --max-time 600 \
+              https://archive.apache.org/dist/hop/2.19.0/apache-hop-client-2.19.0.zip -o "$RUNNER_TEMP/hop.zip"
+          fi
+          echo "eb227ffe3386480f5ecb59e1d9fdbb16ace15b9ebd9e02da16cdca2c3cadc869f92275b0f607952fb2c5122986839a5b09b2c5762401dad128d8de6b0394643c  $RUNNER_TEMP/hop.zip" | sha512sum -c -
+
+      - name: Install isolated Hop and run E2E with documentation examples
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -q "$RUNNER_TEMP/hop.zip" -d "$RUNNER_TEMP/isolated-hop"
+          sdmx_zip="$(find .ci/sdmx -type f -name 'hop-sdmx-plugin-*.zip' -print -quit)"
+          test -n "$sdmx_zip"
+          python3 scripts/run-e2e.py \
+            --hop-home "$RUNNER_TEMP/isolated-hop/hop" \
+            --plugin-zip "$sdmx_zip"
+
+  publish:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: [lint, verify, installed-e2e]
+    uses: edigonzales/hop-plugin-ci/.github/workflows/plugin-publish.yml@main
+    with:
+      ci-ref: main
+      repository-kind: snapshot
+      verified-artifact-name: hop-sdmx-plugin-canonical
+      pom-file: pom.xml
+      zip-descriptors: >-
+        [{"artifactId":"hop-sdmx-plugin","zipGlob":"assemblies/assemblies-hop-sdmx/target/hop-sdmx-plugin-*.zip","pluginRoot":"plugins/transforms/hop-sdmx"}]
+      group-id: ch.so.agi
+      hop-version: 2.19.0
+    secrets:
+      MAVEN_USERNAME: ${{ secrets.INTERLIS_MAVEN_USERNAME }}
+      MAVEN_PASSWORD: ${{ secrets.INTERLIS_MAVEN_TOKEN }}
