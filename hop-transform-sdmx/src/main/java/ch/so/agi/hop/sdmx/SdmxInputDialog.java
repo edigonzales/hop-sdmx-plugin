@@ -158,9 +158,12 @@ public class SdmxInputDialog extends BaseTransformDialog {
       }
     }
     shell.setSize(900, 720);
+    Display display = shell.getDisplay();
     shell.open();
-    while (!shell.isDisposed())
-      if (!shell.getDisplay().readAndDispatch()) shell.getDisplay().sleep();
+    while (!shell.isDisposed()) {
+      // A timer or close callback can dispose the shell during event dispatch.
+      if (!display.readAndDispatch() && !shell.isDisposed()) display.sleep();
+    }
     return transformName;
   }
 
