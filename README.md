@@ -45,7 +45,6 @@ See [AGENTS.md](AGENTS.md) for Maven settings and prerequisites.
 ```bash
 mvn -s "$MAVEN_SETTINGS" -B -ntp clean verify
 python3 scripts/verify-package.py
-python3 "$HOP_CI_DIR/scripts/check-plugin-repository.py" --profile standard-plugin
 ```
 
 Unit tests and installed E2E use local fixtures. [Scripts](scripts/README.md) include the optional live smoke test.

@@ -1,7 +1,6 @@
 # Repository instructions
 
-Read the [shared CI contract](https://github.com/edigonzales/hop-plugin-ci/blob/main/docs/ci-contract.md)
-and [repository contract](https://github.com/edigonzales/hop-plugin-ci/blob/main/docs/plugin-repository-contract.md).
+Read the [shared CI contract](https://github.com/edigonzales/hop-plugin-ci/blob/main/docs/ci-contract.md).
 Profile: `standard-plugin`. Workflows and helpers track `main`.
 
 ## Build and tests
@@ -14,7 +13,6 @@ Run from the repository root:
 - Canonical: `mvn -s "$MAVEN_SETTINGS" -B -ntp clean verify`.
 - Compatibility: `mvn -s "$MAVEN_SETTINGS" -B -ntp clean test`.
 - Package: `python3 scripts/verify-package.py`.
-- Contract: `python3 "$HOP_CI_DIR/scripts/check-plugin-repository.py" --profile standard-plugin`.
 - Installed E2E: `python3 scripts/run-e2e.py --hop-home /absolute/disposable/hop --plugin-zip assemblies/assemblies-hop-sdmx/target/hop-sdmx-plugin-0.1.0-SNAPSHOT.zip`.
 - Installer: `python3 scripts/test-build-and-install.py`; real installer tests use disposable targets.
 - Local install on explicit request: `./scripts/build-and-install.sh [hop-directory]` (default `/Users/stefan/Downloads/hop`).
