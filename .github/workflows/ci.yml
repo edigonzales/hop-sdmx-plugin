@@ -28,14 +28,6 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Check out CI helper scripts
-        uses: actions/checkout@v4
-        with:
-          repository: edigonzales/hop-plugin-ci
-          ref: main
-          path: .ci/hop-plugin-ci
-          persist-credentials: false
-
       - name: Set up Java 21
         uses: actions/setup-java@v4
         with:
@@ -43,7 +35,7 @@ jobs:
           java-version: '21'
 
       - name: Download verified SDMX bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: hop-sdmx-plugin-canonical
           path: .ci/sdmx
@@ -73,16 +65,10 @@ jobs:
   publish:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: [lint, verify, installed-e2e]
-    uses: edigonzales/hop-plugin-ci/.github/workflows/plugin-publish.yml@main
+    uses: edigonzales/hop-plugin-ci/.github/workflows/publish.yml@f0a1eec368cb8c5d2592086b26393a6fc3916ad1
     with:
-      ci-ref: main
       repository-kind: snapshot
       verified-artifact-name: hop-sdmx-plugin-canonical
-      pom-file: pom.xml
-      zip-descriptors: >-
-        [{"artifactId":"hop-sdmx-plugin","zipGlob":"assemblies/assemblies-hop-sdmx/target/hop-sdmx-plugin-*.zip","pluginRoot":"plugins/transforms/hop-sdmx"}]
-      group-id: ch.so.agi
-      hop-version: 2.19.0
     secrets:
       MAVEN_USERNAME: ${{ secrets.INTERLIS_MAVEN_USERNAME }}
       MAVEN_PASSWORD: ${{ secrets.INTERLIS_MAVEN_TOKEN }}
