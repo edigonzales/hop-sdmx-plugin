@@ -1,7 +1,7 @@
 # Repository instructions
 
 Read the [shared CI contract](https://github.com/edigonzales/hop-plugin-ci/blob/main/docs/ci-contract.md).
-Profile: `standard-plugin`. Workflows and helpers track `main`.
+Use the workflow and helper revision pinned in `.github/workflows/verify.yml`.
 
 ## Build and tests
 
